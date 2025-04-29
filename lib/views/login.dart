@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Image.asset(
-                        'assets/logo.png',
+                        '/logo.png',
                         height: 100,
                         width: 100,
                       ),
