@@ -1,38 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
+  
+  <!-- Configuración para permitir popups en navegadores modernos -->
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="credentialless">
 
-  <!-- iOS meta tags & icons -->
+  <!-- Config para móvil -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="upmovil">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>upmovil</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Scripts de Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // La configuración de Firebase se insertará automáticamente durante la compilación
+    // por Flutter web, o puedes añadirla manualmente aquí.
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmtKoBOCsoYUTG12LZr069ZhIRVbClc94", // Reemplaza con tu información real
+      authDomain: "arrendamientos-80c2a.firebaseapp.com",
+      projectId: "arrendamientos-80c2a",
+      storageBucket: "arrendamientos-80c2a.firebasestorage.app",
+      messagingSenderId: "32381451979",
+      appId: "1:32381451979:web:923a8e40929f827758e54e"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- Script de inicialización de Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Cargar el entrypoint de Flutter
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
