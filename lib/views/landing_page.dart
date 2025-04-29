@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
+import '../services/image_helper.dart';
+import '../services/theme_service.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -39,7 +41,6 @@ class _LandingPageState extends State<LandingPage> {
     });
     try {
       // Si estás usando un emulador, reemplaza localhost con tu IP local
-      // Por ejemplo: 'http://192.168.1.X:4000/api/...'
       final endpoint = _searchTerm.isNotEmpty
           ? 'http://localhost:4000/api/propiedades/search?q=${Uri.encodeComponent(_searchTerm)}'
           : 'http://localhost:4000/api/alojamientos';
@@ -70,9 +71,11 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeService = Provider.of<ThemeService>(context);
+    
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2A8C82),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         title: TextField(
           decoration: InputDecoration(
             hintText: 'Buscar propiedades...',
@@ -92,14 +95,22 @@ class _LandingPageState extends State<LandingPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () {}, // TODO: abrir modal de filtros
+            onPressed: () {
+              // TODO: abrir modal de filtros
+            },
+          ),
+          IconButton(
+            icon: Icon(themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            onPressed: () {
+              themeService.toggleTheme();
+            },
           ),
         ],
       ),
       body: Column(
         children: [
           Container(
-            color: const Color(0xFF2A8C82),
+            color: Theme.of(context).appBarTheme.backgroundColor,
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -110,8 +121,8 @@ class _LandingPageState extends State<LandingPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9BF2EA),
-                        foregroundColor: const Color(0xFF275950),
+                        backgroundColor: Theme.of(context).colorScheme.secondary,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                         elevation: selected ? 4 : 1,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -173,9 +184,21 @@ class _LandingPageState extends State<LandingPage> {
                           ),
           ),
           Container(
-            color: Colors.grey[200],
+            color: Theme.of(context).brightness == Brightness.dark ? 
+              Colors.grey[850] : Colors.grey[200],
             padding: const EdgeInsets.all(16),
-            child: const Center(child: Text('© 2025 Tu Compañía')),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '© 2025 UPMovil', 
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark ? 
+                      Colors.grey[400] : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -202,6 +225,9 @@ class _PropertyCardState extends State<PropertyCard> {
   String? _error;
   Propiedad? _propiedad;
   bool _isFavorite = false;
+  
+  // Instancia de nuestro helper de imágenes
+  final _imageHelper = ImageHelper();
 
   @override
   void initState() {
@@ -228,10 +254,6 @@ class _PropertyCardState extends State<PropertyCard> {
         _loading = false;
       });
       
-      // Imprimir URL de la imagen para depuración
-      if (_propiedad?.imagenes.isNotEmpty ?? false) {
-        print('URL de imagen en la respuesta: ${_propiedad!.imagenes.first.url}');
-      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -244,7 +266,7 @@ class _PropertyCardState extends State<PropertyCard> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Card(
+      return Card(
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -256,24 +278,12 @@ class _PropertyCardState extends State<PropertyCard> {
     }
     
     final prop = _propiedad!;
-    String imageUrl = '';
-    
-    // Construcción mejorada de la URL
-    if (prop.imagenes.isNotEmpty) {
-      final rawUrl = prop.imagenes.first.url;
-      if (rawUrl.startsWith('http')) {
-        imageUrl = rawUrl;
-      } else if (rawUrl.isNotEmpty) {
-        // Aseguramos que la ruta comience con /
-        final path = rawUrl.startsWith('/') ? rawUrl : '/$rawUrl';
-        // Si estás usando un emulador, reemplaza localhost con tu IP local
-        imageUrl = 'http://localhost:4000$path';
-      }
-      print('URL final de imagen construida: $imageUrl');
-    }
+    String imageUrl = prop.imagenes.isNotEmpty ? prop.imagenes.first.url : '';
     
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        // Navegar a detalle de propiedad
+      },
       child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -282,51 +292,12 @@ class _PropertyCardState extends State<PropertyCard> {
           children: [
             Stack(
               children: [
-                ClipRRect(
+                // Usar nuestro ImageHelper para mostrar la imagen
+                _imageHelper.buildNetworkImage(
+                  imageUrl: imageUrl,
+                  height: 140,
+                  width: double.infinity,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        errorWidget: (context, url, error) {
-                          print('Error cargando imagen: $error');
-                          return Image.asset(
-                            'assets/images/default-image.jpg',
-                            height: 140,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error cargando imagen por defecto: $error');
-                              return Container(
-                                height: 140,
-                                width: double.infinity,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image_not_supported, size: 50),
-                              );
-                            },
-                          );
-                        },
-                      )
-                    : Image.asset(
-                        'assets/images/default-image.jpg',
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          print('Error cargando imagen por defecto: $error');
-                          return Container(
-                            height: 140,
-                            width: double.infinity,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image_not_supported, size: 50),
-                          );
-                        },
-                      ),
                 ),
                 Positioned(
                   right: 8,
@@ -401,9 +372,11 @@ class _PropertyCardState extends State<PropertyCard> {
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Navegar a detalle de propiedad
+                      },
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.green[700],
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                         textStyle: const TextStyle(fontSize: 14),
                       ),
                       child: const Text('Ver detalles'),
