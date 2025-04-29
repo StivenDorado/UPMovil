@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -37,19 +38,29 @@ class _LandingPageState extends State<LandingPage> {
       _error = null;
     });
     try {
+      // Si estás usando un emulador, reemplaza localhost con tu IP local
+      // Por ejemplo: 'http://192.168.1.X:4000/api/...'
       final endpoint = _searchTerm.isNotEmpty
           ? 'http://localhost:4000/api/propiedades/search?q=${Uri.encodeComponent(_searchTerm)}'
           : 'http://localhost:4000/api/alojamientos';
+      
+      print('Consultando endpoint: $endpoint');
+      
       final response = await http.get(Uri.parse(endpoint));
+      
       if (response.statusCode != 200) {
-        throw Exception('Error cargando propiedades');
+        throw Exception('Error cargando propiedades: ${response.statusCode}');
       }
+      
       final List data = json.decode(response.body);
       _propertyIds = data
           .map<String>((item) => (item['id'] ?? item['_id']).toString())
           .toList();
+          
+      print('Propiedades encontradas: ${_propertyIds.length}');
     } catch (e) {
       _error = e.toString();
+      print('Error en _fetchPropertyIds: $_error');
     } finally {
       setState(() {
         _isLoading = false;
@@ -200,22 +211,33 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Future<void> _fetchDetalle() async {
     try {
-      final url =
-          'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
+      // Si estás usando un emulador, reemplaza localhost con tu IP local
+      final url = 'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
+      
+      print('Consultando propiedad: $url');
+      
       final response = await http.get(Uri.parse(url));
+      
       if (response.statusCode != 200) {
-        throw Exception('Error al cargar la propiedad');
+        throw Exception('Error al cargar la propiedad: ${response.statusCode}');
       }
+      
       final data = json.decode(response.body);
       setState(() {
         _propiedad = Propiedad.fromJson(data['data'] ?? data);
         _loading = false;
       });
+      
+      // Imprimir URL de la imagen para depuración
+      if (_propiedad?.imagenes.isNotEmpty ?? false) {
+        print('URL de imagen en la respuesta: ${_propiedad!.imagenes.first.url}');
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
+      print('Error en _fetchDetalle: $_error');
     }
   }
 
@@ -236,14 +258,18 @@ class _PropertyCardState extends State<PropertyCard> {
     final prop = _propiedad!;
     String imageUrl = '';
     
-    // Construcción correcta de la URL usando Uri
+    // Construcción mejorada de la URL
     if (prop.imagenes.isNotEmpty) {
       final rawUrl = prop.imagenes.first.url;
       if (rawUrl.startsWith('http')) {
         imageUrl = rawUrl;
       } else if (rawUrl.isNotEmpty) {
-        imageUrl = Uri.parse('http://localhost:4000').replace(path: rawUrl).toString();
+        // Aseguramos que la ruta comience con /
+        final path = rawUrl.startsWith('/') ? rawUrl : '/$rawUrl';
+        // Si estás usando un emulador, reemplaza localhost con tu IP local
+        imageUrl = 'http://localhost:4000$path';
       }
+      print('URL final de imagen construida: $imageUrl');
     }
     
     return GestureDetector(
@@ -259,23 +285,47 @@ class _PropertyCardState extends State<PropertyCard> {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Image.asset(
-                          'assets/default-image.jpg',
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
+                        errorWidget: (context, url, error) {
+                          print('Error cargando imagen: $error');
+                          return Image.asset(
+                            'assets/images/default-image.jpg',
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Error cargando imagen por defecto: $error');
+                              return Container(
+                                height: 140,
+                                width: double.infinity,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.image_not_supported, size: 50),
+                              );
+                            },
+                          );
+                        },
                       )
                     : Image.asset(
-                        'assets/default-image.jpg',
+                        'assets/images/default-image.jpg',
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          print('Error cargando imagen por defecto: $error');
+                          return Container(
+                            height: 140,
+                            width: double.infinity,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image_not_supported, size: 50),
+                          );
+                        },
                       ),
                 ),
                 Positioned(
