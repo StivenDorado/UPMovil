@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'services/firebase.dart';
+import 'services/theme_service.dart'; // Import the ThemeService
 import 'views/landing_page.dart';
 import 'views/login.dart';
 
@@ -20,52 +21,58 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeService()), // Add ThemeService provider
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Alquiler App',
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2A8C82),
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-              inputDecorationTheme: InputDecorationTheme(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+          // Get ThemeService
+          return Consumer<ThemeService>(
+            builder: (context, themeService, _) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'Alquiler App',
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF2A8C82),
+                    brightness: themeService.isDarkMode ? Brightness.dark : Brightness.light,
+                  ),
+                  useMaterial3: true,
+                  inputDecorationTheme: InputDecorationTheme(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                  ),
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFF2A8C82),
+                    ),
+                  ),
+                  outlinedButtonTheme: OutlinedButtonThemeData(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF88F2E8),
+                    ),
+                  ),
+                  fontFamily: 'Roboto',
                 ),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-              ),
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: const Color(0xFF2A8C82),
-                ),
-              ),
-              outlinedButtonTheme: OutlinedButtonThemeData(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              textButtonTheme: TextButtonThemeData(
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF88F2E8),
-                ),
-              ),
-              fontFamily: 'Roboto',
-            ),
-            initialRoute: '/',
-            routes: {
-              '/': (context) => authProvider.loading
-                  ? const SplashScreen() 
-                  : authProvider.user != null
-                      ? const LandingPage()
-                      : const LoginScreen(),
-              '/landing': (context) => const LandingPage(),
-              '/login': (context) => const LoginScreen(),
+                initialRoute: '/',
+                routes: {
+                  '/': (context) => authProvider.loading
+                      ? const SplashScreen()
+                      : authProvider.user != null
+                          ? const LandingPage()
+                          : const LoginScreen(),
+                  '/landing': (context) => const LandingPage(),
+                  '/login': (context) => const LoginScreen(),
+                },
+              );
             },
           );
         },

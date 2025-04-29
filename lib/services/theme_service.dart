@@ -1,50 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Servicio para gestionar el tema de la aplicación
 class ThemeService extends ChangeNotifier {
-  bool _isDarkMode = false;
-  final String _themeKey = 'theme_mode';
+  bool _isDarkMode = true;
+  final String _themeKey = 'isDarkMode';
 
   bool get isDarkMode => _isDarkMode;
 
+  // Constructor tries to load saved theme preference
   ThemeService() {
-    _loadThemeFromPrefs();
+    _loadThemePreference();
   }
 
-  /// Carga el tema guardado desde SharedPreferences
-  Future<void> _loadThemeFromPrefs() async {
+  // Load saved theme preference from SharedPreferences
+  Future<void> _loadThemePreference() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _isDarkMode = prefs.getBool(_themeKey) ?? false;
+      _isDarkMode = prefs.getBool(_themeKey) ?? true; // Default to dark mode
       notifyListeners();
     } catch (e) {
-      print('Error cargando tema: $e');
+      // If any error occurs, use default dark mode
+      _isDarkMode = true;
     }
   }
 
-  /// Guarda la preferencia de tema en SharedPreferences
-  Future<void> _saveThemeToPrefs() async {
+  // Save theme preference to SharedPreferences
+  Future<void> _saveThemePreference() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_themeKey, _isDarkMode);
     } catch (e) {
-      print('Error guardando tema: $e');
+      // Handle error if needed
+      print('Error saving theme preference: $e');
     }
   }
 
-  /// Cambia entre tema claro y oscuro
-  Future<void> toggleTheme() async {
+  // Toggle between light and dark mode
+  void toggleTheme() {
     _isDarkMode = !_isDarkMode;
-    await _saveThemeToPrefs();
+    _saveThemePreference();
     notifyListeners();
   }
 
-  /// Establece un tema específico
-  Future<void> setDarkMode(bool isDark) async {
+  // Set specific theme mode
+  void setDarkMode(bool isDark) {
     if (_isDarkMode != isDark) {
       _isDarkMode = isDark;
-      await _saveThemeToPrefs();
+      _saveThemePreference();
       notifyListeners();
     }
   }
