@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/image_helper.dart';
 import '../services/theme_service.dart';
+import '../widgets/user_menu_modal.dart'; // Importación del nuevo componente
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -125,6 +126,8 @@ class _LandingPageState extends State<LandingPage> {
               // TODO: abrir modal de filtros
             },
           ),
+          // Nuevo botón de menú de usuario
+          const UserMenuButton(),
           IconButton(
             icon: Icon(themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
             onPressed: () {
