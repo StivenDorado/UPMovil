@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PerfilComponent extends StatelessWidget {
-  const PerfilComponent({Key? key}) : super(key: key);
+  const PerfilComponent({super.key});
 
   @override
   Widget build(BuildContext context) {

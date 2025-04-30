@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
-// Importación de componentes
-import 'components/profile/informacion_personal.dart';
-import 'components/profile/lista_favoritos.dart';
-import 'components/profile/ofertas_precio.dart';
-import 'components/profile/citas_arrendador.dart';
-import 'components/profile/solicitud_cita_aprendiz.dart';
-import 'components/profile/mis_propiedades.dart';
-import 'components/profile/mensajes.dart';
-import 'components/profile/solicitudes_reservas.dart';
-import 'components/profile/perfil.dart';
-import 'components/profile/registrar_arrendador.dart';
+// Componentes de perfil
+import '../component/profile/informacionPersonal.dart';
+/* import '../component/profile/listaFavoritos.dart'; */
+import '../component/profile/ofertasPrecios.dart';
+import '../component/profile/citasArrendador.dart';
+import '../component/profile/solicitudesCitas.dart';
+import '../component/profile/misPropiedades.dart';
+/* import '../component/profile/mensajes.dart';
+import '../component/profile/solicitudesReservas.dart'; */
+import '../component/profile/Perfil.dart';
+/* import '../component/profile/registrarArrendador.dart'; */
 
-// Importación del contexto de autenticación
+// Proveedor de autenticación
 import '../providers/auth_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? initialSection;
 
-  const ProfileScreen({Key? key, this.initialSection}) : super(key: key);
+  const ProfileScreen({super.key, this.initialSection});
 
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
@@ -40,8 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
-    final userType = user?.esArrendador ?? false ? 'arrendador' : 'aprendiz';
+    final user = authProvider.user; // Ajusta según tu AuthProvider
+    final userType = (user?.esArrendador ?? false) ? 'arrendador' : 'aprendiz';
 
     if (user == null) {
       return const Center(child: CircularProgressIndicator());
@@ -54,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             width: isCollapsed ? 80 : 280,
-            color: const Color(0xFF0D9488), // teal-700
+            color: const Color(0xFF0D9488),
             child: Column(
               children: [
                 // Perfil de usuario
@@ -86,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                user.displayName ?? "Usuario",
+                                user.displayName ?? 'Usuario',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -127,98 +127,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
                       child: Column(
                         children: [
-                          // Elementos comunes para ambos tipos de usuario
-                          _buildNavItem(
-                            icon: Icons.person,
-                            label: "Perfil",
-                            section: "perfil",
-                          ),
-                          _buildNavItem(
-                            icon: Icons.info,
-                            label: "Información personal",
-                            section: "informacion",
-                          ),
-                          
-                          // Elementos específicos según el tipo de usuario
+                          _buildNavItem(icon: Icons.person, label: 'Perfil', section: 'perfil'),
+                          _buildNavItem(icon: Icons.info, label: 'Información personal', section: 'informacion'),
                           if (userType == 'aprendiz') ...[
-                            _buildNavItem(
-                              icon: Icons.favorite,
-                              label: "Lista de Favoritos",
-                              section: "favoritos",
-                            ),
-                            _buildNavItem(
-                              icon: Icons.calendar_today,
-                              label: "Solicitudes para citas",
-                              section: "solicitudes_citas_aprendiz",
-                            ),
+                            _buildNavItem(icon: Icons.favorite, label: 'Favoritos', section: 'favoritos'),
+                            _buildNavItem(icon: Icons.calendar_today, label: 'Solicitudes citas', section: 'solicitudes_citas_aprendiz'),
                           ] else ...[
-                            _buildNavItem(
-                              icon: Icons.calendar_today,
-                              label: "Solicitudes de citas",
-                              section: "solicitudes_citas_arrendador",
-                            ),
-                            _buildNavItem(
-                              icon: Icons.attach_money,
-                              label: "Ofertas de precio",
-                              section: "ofertas",
-                            ),
+                            _buildNavItem(icon: Icons.calendar_today, label: 'Citas recibidas', section: 'solicitudes_citas_arrendador'),
+                            _buildNavItem(icon: Icons.attach_money, label: 'Ofertas precio', section: 'ofertas'),
                           ],
-                          
-                          // Solicitudes de reservas para ambos
-                          _buildNavItem(
-                            icon: Icons.description,
-                            label: "Solicitudes de reservas",
-                            section: "solicitudes_reservas",
-                          ),
-                          
-                          _buildNavItem(
-                            icon: Icons.message,
-                            label: "Mensajes",
-                            section: "mensajes",
-                          ),
-                          
+                          _buildNavItem(icon: Icons.description, label: 'Reservas', section: 'solicitudes_reservas'),
+                          _buildNavItem(icon: Icons.message, label: 'Mensajes', section: 'mensajes'),
                           if (userType == 'aprendiz')
-                            _buildNavItem(
-                              icon: Icons.bar_chart,
-                              label: "Enviar reportes",
-                              section: "reportes",
-                            ),
-                            
+                            _buildNavItem(icon: Icons.bar_chart, label: 'Reportes', section: 'reportes'),
                           if (userType == 'arrendador')
-                            _buildNavItem(
-                              icon: Icons.apartment,
-                              label: "Mis propiedades",
-                              section: "propiedades",
-                            ),
-                            
+                            _buildNavItem(icon: Icons.apartment, label: 'Mis propiedades', section: 'propiedades'),
                           _buildNavItem(
                             icon: Icons.home,
-                            label: "Inicio",
-                            section: "inicio",
-                            onTap: () {
-                              Navigator.pushReplacementNamed(context, '/home');
-                            },
+                            label: 'Inicio',
+                            section: 'inicio',
+                            onTap: () => Navigator.pushReplacementNamed(context, '/home'),
                           ),
-                          
                           if (userType == 'aprendiz')
                             _buildNavItem(
                               icon: Icons.group,
-                              label: "Registrarse como Arrendador",
-                              section: "registro_arrendador",
-                              onTap: () {
-                                setState(() {
-                                  showLandlordModal = true;
-                                });
-                              },
+                              label: 'Registrarse como Arrendador',
+                              section: 'registro_arrendador',
+                              onTap: () => setState(() => showLandlordModal = true),
                             ),
-                            
                           _buildNavItem(
                             icon: Icons.logout,
-                            label: "Cerrar sesión",
-                            section: "logout",
-                            onTap: () {
-                              _handleLogout(context);
-                            },
+                            label: 'Cerrar sesión',
+                            section: 'logout',
+                            onTap: () => _handleLogout(context),
                           ),
                         ],
                       ),
@@ -228,50 +169,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          
           // Contenido principal
           Expanded(
             child: Column(
               children: [
-                // Barra superior
                 Container(
-                  color: const Color(0xFF0D9488), // teal-600
+                  color: const Color(0xFF0D9488),
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(
-                          isCollapsed
-                              ? Icons.chevron_right
-                              : Icons.chevron_left,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isCollapsed = !isCollapsed;
-                          });
-                        },
+                        icon: Icon(isCollapsed ? Icons.chevron_right : Icons.chevron_left, color: Colors.white),
+                        onPressed: () => setState(() => isCollapsed = !isCollapsed),
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        userType == 'arrendador'
-                            ? "Perfil Arrendador"
-                            : "Perfil Aprendiz",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        userType == 'arrendador' ? 'Perfil Arrendador' : 'Perfil Aprendiz',
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                 ),
-                
-                // Área de contenido
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: _renderContent(),
+                    child: _renderContent(user), // Pasamos el usuario si se requiere
                   ),
                 ),
               ],
@@ -279,23 +201,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      // Modal para registro de arrendador
       floatingActionButton: showLandlordModal
           ? FloatingActionButton(
               onPressed: () {
-                setState(() {
-                  showLandlordModal = false;
-                });
+                setState(() => showLandlordModal = false);
                 showDialog(
                   context: context,
-                  builder: (context) => RegistrarArrendadorModal(
-                    onClose: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        showLandlordModal = false;
-                      });
-                    },
-                  ),
+                  builder: (_) => RegistrarArrendador(onClose: () => Navigator.pop(context)),
                 );
               },
               child: const Icon(Icons.add),
@@ -304,14 +216,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required String section,
-    VoidCallback? onTap,
-  }) {
-    final bool isActive = activeSection == section;
-
+  Widget _buildNavItem({required IconData icon, required String label, required String section, VoidCallback? onTap}) {
+    final isActive = activeSection == section;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Material(
@@ -319,35 +225,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: onTap ?? () {
-            setState(() {
-              activeSection = section;
-            });
-          },
+          onTap: onTap ?? () => setState(() => activeSection = section),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: isActive ? const Color(0xFF0D9488).withOpacity(0.8) : Colors.transparent,
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: isActive ? const Color(0xFF0D9488).withOpacity(0.8) : Colors.transparent),
             child: Row(
               mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: [
-                Icon(
-                  icon,
-                  color: Colors.white,
-                  size: isCollapsed ? 24 : 18,
-                ),
-                if (!isCollapsed) ...[
-                  const SizedBox(width: 12),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ],
+              children: [Icon(icon, color: Colors.white, size: isCollapsed ? 24 : 18), if (!isCollapsed) ...[const SizedBox(width: 12), Text(label, style: const TextStyle(color: Colors.white))]],
             ),
           ),
         ),
@@ -355,38 +239,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _renderContent() {
+  Widget _renderContent(user) {
     switch (activeSection) {
       case 'perfil':
-        return const Perfil();
+        return PerfilComponent();
       case 'informacion':
-        return const InformacionPersonal();
-      case 'favoritos':
-        return const ListaFavoritos();
+        return InformacionPersonal();
+/*       case 'favoritos':
+        return FavoritosList(); */
       case 'solicitudes_citas_aprendiz':
-        return const SolicitudCitaAprendiz();
+        return SolicitudesCitasAprendiz();
       case 'solicitudes_citas_arrendador':
-        return const CitasArrendador();
-      case 'solicitudes_reservas':
-        return const SolicitudesReservas();
+        return CitasArrendador();
+/*       case 'solicitudes_reservas':
+        return SolicitudesReservas(); */
       case 'ofertas':
-        return const OfertasPrecio();
-      case 'mensajes':
-        return const Mensajes();
+        return OfertasPrecios();
+/*       case 'mensajes':
+        return Mensajes(); */
       case 'reportes':
-        return const Center(
-          child: Text('Enviar Reportes - Contenido en desarrollo'),
-        );
+        return const Center(child: Text('Enviar Reportes - En desarrollo'));
       case 'propiedades':
-        return const MisPropiedades();
+        return MisPropiedades(propiedades: user.propiedades); // Asegúrate de pasar la lista correcta
       case 'inicio':
-        return const Center(
-          child: Text('Pantalla de Inicio - Contenido en desarrollo'),
-        );
+        return const Center(child: Text('Inicio - En desarrollo'));
       default:
-        return const Center(
-          child: Text('Contenido del Perfil'),
-        );
+        return const Center(child: Text('Contenido no encontrado'));
     }
   }
 
@@ -396,9 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await authProvider.logout();
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cerrar sesión: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al cerrar sesión: \$e')));
     }
   }
 }

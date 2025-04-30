@@ -21,7 +21,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeService()), // Add ThemeService provider
+        ChangeNotifierProvider(
+            create: (_) => ThemeService()), // Add ThemeService provider
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
@@ -31,14 +32,16 @@ class MyApp extends StatelessWidget {
               // Define color constants
               const primaryColor = Color(0xFF275950);
               const accentColor = Color(0xFF88F2E8);
-              
+
               return MaterialApp(
                 debugShowCheckedModeBanner: false,
                 title: 'Alquiler App',
                 theme: ThemeData(
                   colorScheme: ColorScheme.fromSeed(
                     seedColor: const Color(0xFF2A8C82),
-                    brightness: themeService.isDarkMode ? Brightness.dark : Brightness.light,
+                    brightness: themeService.isDarkMode
+                        ? Brightness.dark
+                        : Brightness.light,
                     primary: primaryColor,
                     secondary: accentColor,
                   ),
@@ -47,8 +50,9 @@ class MyApp extends StatelessWidget {
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                   ),
-                  scaffoldBackgroundColor: themeService.isDarkMode ? 
-                    const Color(0xFF121212) : Colors.grey[50],
+                  scaffoldBackgroundColor: themeService.isDarkMode
+                      ? const Color(0xFF121212)
+                      : Colors.grey[50],
                   useMaterial3: true,
                   inputDecorationTheme: InputDecorationTheme(
                     border: OutlineInputBorder(
@@ -114,7 +118,8 @@ class MyApp extends StatelessWidget {
                   ),
                   fontFamily: 'Roboto',
                 ),
-                themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+                themeMode:
+                    themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
                 initialRoute: '/',
                 routes: {
                   '/': (context) => authProvider.loading
