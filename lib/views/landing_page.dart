@@ -19,6 +19,8 @@ class _LandingPageState extends State<LandingPage> {
   String? _error;
   List<String> _propertyIds = [];
   String _selectedCategory = 'Todos';
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   final List<Category> _categories = [
     Category('Todos', Icons.home),
@@ -34,63 +36,87 @@ class _LandingPageState extends State<LandingPage> {
     _fetchPropertyIds();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _fetchPropertyIds() async {
+    if (_isSearching) return;
+
     setState(() {
       _isLoading = true;
       _error = null;
+      _isSearching = true;
     });
+
     try {
-      // Si estás usando un emulador, reemplaza localhost con tu IP local
-      final endpoint = _searchTerm.isNotEmpty
-          ? 'http://localhost:4000/api/propiedades/search?q=${Uri.encodeComponent(_searchTerm)}'
-          : 'http://localhost:4000/api/alojamientos';
-      
-      print('Consultando endpoint: $endpoint');
-      
+      String endpoint;
+      if (_searchTerm.isNotEmpty) {
+        endpoint = 'http://localhost:4000/api/propiedades/search?q=${Uri.encodeComponent(_searchTerm)}';
+      } else {
+        endpoint = 'http://localhost:4000/api/alojamientos';
+      }
+      if (_selectedCategory != 'Todos') {
+        final separator = endpoint.contains('?') ? '&' : '?';
+        endpoint += '$separator categoria=${Uri.encodeComponent(_selectedCategory)}';
+      }
+
       final response = await http.get(Uri.parse(endpoint));
-      
       if (response.statusCode != 200) {
         throw Exception('Error cargando propiedades: ${response.statusCode}');
       }
-      
-      final List data = json.decode(response.body);
+
+      final dynamic responseData = json.decode(response.body);
+      List<dynamic> data;
+      if (responseData is Map<String, dynamic>) {
+        data = responseData['data'] as List<dynamic>? ?? [];
+      } else if (responseData is List<dynamic>) {
+        data = responseData;
+      } else {
+        throw Exception('Formato de respuesta desconocido');
+      }
+
       _propertyIds = data
           .map<String>((item) => (item['id'] ?? item['_id']).toString())
           .toList();
-          
-      print('Propiedades encontradas: ${_propertyIds.length}');
     } catch (e) {
       _error = e.toString();
-      print('Error en _fetchPropertyIds: $_error');
     } finally {
       setState(() {
         _isLoading = false;
+        _isSearching = false;
       });
     }
+  }
+
+  Future<void> _performSearch(String value) async {
+    _searchTerm = value;
+    await _fetchPropertyIds();
   }
 
   @override
   Widget build(BuildContext context) {
     final themeService = Provider.of<ThemeService>(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        title: TextField(
-          decoration: InputDecoration(
-            hintText: 'Buscar propiedades...',
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
+        title: Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.white,
+              hintStyle: TextStyle(color: Colors.grey[600]),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
-            filled: true,
-            fillColor: Colors.white,
           ),
-          onChanged: (val) {
-            _searchTerm = val;
-            _fetchPropertyIds();
-          },
+          child: SearchBar(
+            controller: _searchController,
+            onSearch: _performSearch,
+            isLoading: _isLoading,
+          ),
         ),
         actions: [
           IconButton(
@@ -109,11 +135,11 @@ class _LandingPageState extends State<LandingPage> {
       ),
       body: Column(
         children: [
+          // FILTROS OCUPANDO TODO EL ANCHO
           Container(
             color: Theme.of(context).appBarTheme.backgroundColor,
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: _categories.map((cat) {
                 final bool selected = cat.name == _selectedCategory;
                 return Expanded(
@@ -121,8 +147,12 @@ class _LandingPageState extends State<LandingPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.secondary,
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: selected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.secondary,
+                        foregroundColor: selected
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).colorScheme.primary,
                         elevation: selected ? 4 : 1,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -131,15 +161,24 @@ class _LandingPageState extends State<LandingPage> {
                       onPressed: () {
                         setState(() {
                           _selectedCategory = cat.name;
+                          _fetchPropertyIds();
                         });
                       },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(cat.icon),
-                          const SizedBox(width: 6),
-                          Text(cat.name),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(cat.icon, size: 18),
+                            const SizedBox(height: 4),
+                            Text(
+                              cat.name,
+                              style: const TextStyle(fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -147,6 +186,7 @@ class _LandingPageState extends State<LandingPage> {
               }).toList(),
             ),
           ),
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -160,18 +200,15 @@ class _LandingPageState extends State<LandingPage> {
                     : _propertyIds.isEmpty
                         ? Center(
                             child: Text(_searchTerm.isNotEmpty
-                                ? 'No hay resultados para "$_searchTerm"'
+                                ? 'No hay resultados para \"$_searchTerm\"'
                                 : 'No se encontraron propiedades'),
                           )
                         : Padding(
                             padding: const EdgeInsets.all(8),
                             child: GridView.builder(
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount:
-                                    MediaQuery.of(context).size.width > 600
-                                        ? 4
-                                        : 2,
+                                    MediaQuery.of(context).size.width > 600 ? 4 : 2,
                                 childAspectRatio: 0.7,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
@@ -184,17 +221,19 @@ class _LandingPageState extends State<LandingPage> {
                           ),
           ),
           Container(
-            color: Theme.of(context).brightness == Brightness.dark ? 
-              Colors.grey[850] : Colors.grey[200],
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.grey[200],
             padding: const EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '© 2025 UPMovil', 
+                  '© 2025 UPMovil',
                   style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark ? 
-                      Colors.grey[400] : Colors.grey[700],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : Colors.grey[700],
                   ),
                 ),
               ],
@@ -202,6 +241,71 @@ class _LandingPageState extends State<LandingPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// === WIDGETS AUXILIARES ===
+
+class SearchBar extends StatefulWidget {
+  final TextEditingController controller;
+  final Function(String) onSearch;
+  final bool isLoading;
+
+  const SearchBar({
+    Key? key,
+    required this.controller,
+    required this.onSearch,
+    this.isLoading = false,
+  }) : super(key: key);
+
+  @override
+  State<SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<SearchBar> {
+  Future<void>? _searchDebounce;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      decoration: InputDecoration(
+        hintText: 'Buscar propiedades...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: widget.controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  widget.controller.clear();
+                  widget.onSearch('');
+                },
+              )
+            : widget.isLoading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  )
+                : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      onChanged: (value) {
+        _searchDebounce?.ignore();
+        _searchDebounce = Future.delayed(const Duration(milliseconds: 500), () {
+          widget.onSearch(value);
+        });
+      },
     );
   }
 }
@@ -225,8 +329,6 @@ class _PropertyCardState extends State<PropertyCard> {
   String? _error;
   Propiedad? _propiedad;
   bool _isFavorite = false;
-  
-  // Instancia de nuestro helper de imágenes
   final _imageHelper = ImageHelper();
 
   @override
@@ -237,53 +339,36 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Future<void> _fetchDetalle() async {
     try {
-      // Si estás usando un emulador, reemplaza localhost con tu IP local
       final url = 'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
-      
-      print('Consultando propiedad: $url');
-      
       final response = await http.get(Uri.parse(url));
-      
       if (response.statusCode != 200) {
         throw Exception('Error al cargar la propiedad: ${response.statusCode}');
       }
-      
       final data = json.decode(response.body);
       setState(() {
         _propiedad = Propiedad.fromJson(data['data'] ?? data);
         _loading = false;
       });
-      
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
       });
-      print('Error en _fetchDetalle: $_error');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Card(
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return Card(child: Center(child: CircularProgressIndicator()));
     }
-    
     if (_error != null) {
-      return Card(
-        child: Center(child: Text('Error: $_error')),
-      );
+      return Card(child: Center(child: Text('Error: $_error')));
     }
-    
     final prop = _propiedad!;
     String imageUrl = prop.imagenes.isNotEmpty ? prop.imagenes.first.url : '';
-    
     return GestureDetector(
-      onTap: () {
-        // Navegar a detalle de propiedad
-      },
+      onTap: () {},
       child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -292,7 +377,6 @@ class _PropertyCardState extends State<PropertyCard> {
           children: [
             Stack(
               children: [
-                // Usar nuestro ImageHelper para mostrar la imagen
                 _imageHelper.buildNetworkImage(
                   imageUrl: imageUrl,
                   height: 140,
@@ -303,9 +387,7 @@ class _PropertyCardState extends State<PropertyCard> {
                   right: 8,
                   top: 8,
                   child: GestureDetector(
-                    onTap: () {
-                      setState(() => _isFavorite = !_isFavorite);
-                    },
+                    onTap: () => setState(() => _isFavorite = !_isFavorite),
                     child: CircleAvatar(
                       backgroundColor: Colors.white70,
                       radius: 16,
@@ -326,15 +408,13 @@ class _PropertyCardState extends State<PropertyCard> {
                 children: [
                   Text(
                     prop.titulo,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      fontSize: 16
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(Icons.place, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
@@ -342,6 +422,7 @@ class _PropertyCardState extends State<PropertyCard> {
                         child: Text(
                           prop.direccion,
                           style: const TextStyle(fontSize: 12),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -350,31 +431,22 @@ class _PropertyCardState extends State<PropertyCard> {
                   const SizedBox(height: 4),
                   const Text(
                     'Disponible',
-                    style: TextStyle(
-                      fontSize: 12, 
-                      color: Colors.green, 
-                      height: 1.2
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.green, height: 1.2),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     NumberFormat.currency(
-                      locale: 'es_CO', 
-                      symbol: '\$', 
-                      decimalDigits: 0
+                      locale: 'es_CO',
+                      symbol: '\$',
+                      decimalDigits: 0,
                     ).format(prop.precio),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      fontSize: 14
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                      onPressed: () {
-                        // Navegar a detalle de propiedad
-                      },
+                      onPressed: () {},
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         textStyle: const TextStyle(fontSize: 14),
@@ -409,15 +481,11 @@ class Propiedad {
 
   factory Propiedad.fromJson(Map<String, dynamic> json) {
     final String id = (json['_id'] ?? json['id'] ?? '').toString();
-    
     List<Imagen> imagenes = [];
     try {
       final imagenesList = json['imagenes'] as List<dynamic>? ?? [];
       imagenes = imagenesList.map((e) => Imagen.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) {
-      print('Error al parsear imágenes: $e');
-    }
-    
+    } catch (_) {}
     num precio = 0;
     try {
       final precioValue = json['precio'];
@@ -426,10 +494,7 @@ class Propiedad {
       } else if (precioValue is String) {
         precio = num.tryParse(precioValue) ?? 0;
       }
-    } catch (e) {
-      print('Error al parsear precio: $e');
-    }
-    
+    } catch (_) {}
     return Propiedad(
       id: id,
       imagenes: imagenes,
@@ -442,9 +507,7 @@ class Propiedad {
 
 class Imagen {
   final String url;
-  
   Imagen({required this.url});
-  
   factory Imagen.fromJson(Map<String, dynamic> json) {
     return Imagen(url: json['url']?.toString() ?? '');
   }
