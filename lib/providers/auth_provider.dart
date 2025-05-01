@@ -1,89 +1,114 @@
+// lib/providers/auth_provider.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthProvider with ChangeNotifier {
-  User? _user;
+  User? _fbUser;
+  bool? _isArrendador;
   bool _loading = true;
 
-  User? get user => _user;
+  // Getter original
+  User? get fbUser => _fbUser;
+
+  // Alias para que uses `auth.user`
+  User? get user => _fbUser;
+
+  bool? get isArrendador => _isArrendador;
   bool get loading => _loading;
 
   AuthProvider() {
     _init();
   }
 
-  Future<void> _init() async {
+  void _init() {
     _loading = true;
     notifyListeners();
 
-    // Listen for auth state changes
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      _user = user;
+    FirebaseAuth.instance.authStateChanges().listen((user) async {
+      _loading = true;
+      notifyListeners();
+
+      _fbUser = user;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        final data = doc.data() ?? {};
+        _isArrendador = (data['role'] as String? ?? '') == 'arrendador';
+      } else {
+        _isArrendador = null;
+      }
+
       _loading = false;
       notifyListeners();
     });
   }
 
-  // Método para iniciar sesión con correo y contraseña
-  Future<void> login(String email, String password) async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-  }
+  Future<void> login(String email, String password) =>
+      FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-  // Método para registrarse con correo y contraseña
   Future<void> register(String email, String password) async {
-    await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final cred = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(cred.user!.uid)
+        .set({
+      'role': 'aprendiz',
+    });
   }
 
-  // Método para recuperar contraseña
-  Future<void> sendPasswordReset(String email) async {
-    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-  }
+  Future<void> sendPasswordReset(String email) =>
+      FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
-  // Método para iniciar sesión con Google
   Future<UserCredential> loginWithGoogle() async {
-    // Para web, utilizamos un enfoque diferente debido a las limitaciones
     if (kIsWeb) {
-      // Configura el proveedor de Google
-      GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      googleProvider.addScope('https://www.googleapis.com/auth/contacts.readonly');
-      googleProvider.setCustomParameters({
-        'login_hint': 'user@example.com'
-      });
-
-      // Inicia el flujo de autenticación de Google usando el popup
-      return await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      final googleProvider = GoogleAuthProvider()
+        ..addScope('https://www.googleapis.com/auth/contacts.readonly')
+        ..setCustomParameters({'login_hint': 'user@example.com'});
+      return FirebaseAuth.instance.signInWithPopup(googleProvider);
     } else {
-      // Para dispositivos móviles, usamos el flujo estándar
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+      // 1) Inicia flujo de Google Sign-In
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // Usuario canceló el login
+        throw FirebaseAuthException(
+          code: 'ERROR_ABORTED_BY_USER',
+          message: 'Inicio de sesión con Google cancelado por el usuario',
+        );
+      }
 
-      if (googleAuth?.accessToken == null || googleAuth?.idToken == null) {
+      // 2) Obtén los tokens
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      // 3) Valida tokens
+      if (accessToken == null || idToken == null) {
         throw FirebaseAuthException(
           code: 'ERROR_MISSING_GOOGLE_AUTH_TOKEN',
           message: 'Falta el token de autenticación de Google',
         );
       }
 
-      // Crear credencial de Google
+      // 4) Crea credencial y autentica en Firebase
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth?.accessToken,
-        idToken: googleAuth?.idToken,
+        accessToken: accessToken,
+        idToken: idToken,
       );
-
-      // Iniciar sesión con credencial
-      return await FirebaseAuth.instance.signInWithCredential(credential);
+      return FirebaseAuth.instance.signInWithCredential(credential);
     }
   }
 
-  // Método para cerrar sesión
   Future<void> logout() async {
     await FirebaseAuth.instance.signOut();
     if (!kIsWeb) {

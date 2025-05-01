@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'services/firebase.dart';
-import 'services/theme_service.dart';
+import 'services/theme_service.dart'; // Import the ThemeService
 import 'views/landing_page.dart';
-import 'views/login.dart'; // Asegúrate de que esta clase esté bien declarada
+import 'views/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,34 +21,34 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => ThemeService()), // Add ThemeService provider
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
+          // Get ThemeService
           return Consumer<ThemeService>(
             builder: (context, themeService, _) {
+              // Define color constants
               const primaryColor = Color(0xFF275950);
               const accentColor = Color(0xFF88F2E8);
-
+              
               return MaterialApp(
                 debugShowCheckedModeBanner: false,
                 title: 'Alquiler App',
                 theme: ThemeData(
                   colorScheme: ColorScheme.fromSeed(
                     seedColor: const Color(0xFF2A8C82),
-                    brightness: themeService.isDarkMode
-                        ? Brightness.dark
-                        : Brightness.light,
+                    brightness: themeService.isDarkMode ? Brightness.dark : Brightness.light,
                     primary: primaryColor,
                     secondary: accentColor,
                   ),
+                  // Define AppBar theme to maintain original colors
                   appBarTheme: const AppBarTheme(
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                   ),
-                  scaffoldBackgroundColor: themeService.isDarkMode
-                      ? const Color(0xFF121212)
-                      : Colors.grey[50],
+                  scaffoldBackgroundColor: themeService.isDarkMode ? 
+                    const Color(0xFF121212) : Colors.grey[50],
                   useMaterial3: true,
                   inputDecorationTheme: InputDecorationTheme(
                     border: OutlineInputBorder(
@@ -82,6 +82,7 @@ class MyApp extends StatelessWidget {
                     primary: primaryColor,
                     secondary: accentColor,
                   ),
+                  // Define AppBar theme to maintain original colors
                   appBarTheme: const AppBarTheme(
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
@@ -113,13 +114,12 @@ class MyApp extends StatelessWidget {
                   ),
                   fontFamily: 'Roboto',
                 ),
-                themeMode:
-                    themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+                themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
                 initialRoute: '/',
                 routes: {
                   '/': (context) => authProvider.loading
                       ? const SplashScreen()
-                      : authProvider.fbUser != null
+                      : authProvider.user != null
                           ? const LandingPage()
                           : const LoginScreen(),
                   '/landing': (context) => const LandingPage(),
