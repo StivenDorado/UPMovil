@@ -1,9 +1,11 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'services/firebase.dart';
-import 'services/theme_service.dart'; // Import the ThemeService
+import 'services/theme_service.dart';
 import 'views/landing_page.dart';
 import 'views/login.dart';
 
@@ -21,111 +23,113 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeService()), // Add ThemeService provider
+        ChangeNotifierProvider(create: (_) => ThemeService()),
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          // Get ThemeService
-          return Consumer<ThemeService>(
-            builder: (context, themeService, _) {
-              // Define color constants
-              const primaryColor = Color(0xFF275950);
-              const accentColor = Color(0xFF88F2E8);
-              
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                title: 'Alquiler App',
-                theme: ThemeData(
-                  colorScheme: ColorScheme.fromSeed(
-                    seedColor: const Color(0xFF2A8C82),
-                    brightness: themeService.isDarkMode ? Brightness.dark : Brightness.light,
-                    primary: primaryColor,
-                    secondary: accentColor,
-                  ),
-                  // Define AppBar theme to maintain original colors
-                  appBarTheme: const AppBarTheme(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  scaffoldBackgroundColor: themeService.isDarkMode ? 
-                    const Color(0xFF121212) : Colors.grey[50],
-                  useMaterial3: true,
-                  inputDecorationTheme: InputDecorationTheme(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                  ),
-                  elevatedButtonTheme: ElevatedButtonThemeData(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: const Color(0xFF2A8C82),
-                    ),
-                  ),
-                  outlinedButtonTheme: OutlinedButtonThemeData(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                  textButtonTheme: TextButtonThemeData(
-                    style: TextButton.styleFrom(
-                      foregroundColor: accentColor,
-                    ),
-                  ),
-                  fontFamily: 'Roboto',
+      child: Consumer2<AuthProvider, ThemeService>(
+        builder: (context, authProvider, themeService, _) {
+          const primaryColor = Color(0xFF275950);
+          const accentColor = Color(0xFF88F2E8);
+
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Alquiler App',
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF2A8C82),
+                brightness: themeService.isDarkMode ? Brightness.dark : Brightness.light,
+                primary: primaryColor,
+                secondary: accentColor,
+              ),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              scaffoldBackgroundColor: themeService.isDarkMode
+                  ? const Color(0xFF121212)
+                  : Colors.grey[50],
+              useMaterial3: true,
+              inputDecorationTheme: InputDecorationTheme(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                darkTheme: ThemeData(
-                  colorScheme: ColorScheme.fromSeed(
-                    seedColor: const Color(0xFF2A8C82),
-                    brightness: Brightness.dark,
-                    primary: primaryColor,
-                    secondary: accentColor,
-                  ),
-                  // Define AppBar theme to maintain original colors
-                  appBarTheme: const AppBarTheme(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  scaffoldBackgroundColor: const Color(0xFF121212),
-                  useMaterial3: true,
-                  inputDecorationTheme: InputDecorationTheme(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                  ),
-                  elevatedButtonTheme: ElevatedButtonThemeData(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: const Color(0xFF2A8C82),
-                    ),
-                  ),
-                  outlinedButtonTheme: OutlinedButtonThemeData(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                  textButtonTheme: TextButtonThemeData(
-                    style: TextButton.styleFrom(
-                      foregroundColor: accentColor,
-                    ),
-                  ),
-                  fontFamily: 'Roboto',
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF2A8C82),
                 ),
-                themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-                initialRoute: '/',
-                routes: {
-                  '/': (context) => authProvider.loading
-                      ? const SplashScreen()
-                      : authProvider.user != null
-                          ? const LandingPage()
-                          : const LoginScreen(),
-                  '/landing': (context) => const LandingPage(),
-                  '/login': (context) => const LoginScreen(),
-                },
-              );
+              ),
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: accentColor,
+                ),
+              ),
+              fontFamily: 'Roboto',
+            ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF2A8C82),
+                brightness: Brightness.dark,
+                primary: primaryColor,
+                secondary: accentColor,
+              ),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              scaffoldBackgroundColor: const Color(0xFF121212),
+              useMaterial3: true,
+              inputDecorationTheme: InputDecorationTheme(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF2A8C82),
+                ),
+              ),
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: accentColor,
+                ),
+              ),
+              fontFamily: 'Roboto',
+            ),
+            themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+
+            // Aquí está la lógica actualizada:
+            initialRoute: '/',
+            routes: {
+              '/': (context) {
+                // 1) Si ya hay usuario, vamos directo a LandingPage
+                if (authProvider.user != null) {
+                  return const LandingPage();
+                }
+                // 2) Si no hay usuario pero aún estamos cargando, mostramos Splash
+                if (authProvider.loading) {
+                  return const SplashScreen();
+                }
+                // 3) Si ya no cargamos y no hay usuario, pantalla de Login
+                return const LoginScreen();
+              },
+              '/landing': (context) => const LandingPage(),
+              '/login': (context) => const LoginScreen(),
             },
           );
         },
