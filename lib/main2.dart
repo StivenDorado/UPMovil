@@ -1,13 +1,14 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'services/firebase.dart';
 import 'services/theme_service.dart';
-import 'views/landing_page.dart';
+
+// tus vistas
 import 'views/login.dart';
+import 'views/landing_page.dart';
+import 'views/profile.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeService()),
       ],
       child: Consumer2<AuthProvider, ThemeService>(
-        builder: (context, authProvider, themeService, _) {
+        builder: (context, auth, themeService, _) {
           const primaryColor = Color(0xFF275950);
           const accentColor = Color(0xFF88F2E8);
 
@@ -40,38 +41,7 @@ class MyApp extends StatelessWidget {
                 primary: primaryColor,
                 secondary: accentColor,
               ),
-              appBarTheme: const AppBarTheme(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-              ),
-              scaffoldBackgroundColor: themeService.isDarkMode
-                  ? const Color(0xFF121212)
-                  : Colors.grey[50],
               useMaterial3: true,
-              inputDecorationTheme: InputDecorationTheme(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-              ),
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: const Color(0xFF2A8C82),
-                ),
-              ),
-              outlinedButtonTheme: OutlinedButtonThemeData(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              textButtonTheme: TextButtonThemeData(
-                style: TextButton.styleFrom(
-                  foregroundColor: accentColor,
-                ),
-              ),
-              fontFamily: 'Roboto',
             ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
@@ -80,56 +50,27 @@ class MyApp extends StatelessWidget {
                 primary: primaryColor,
                 secondary: accentColor,
               ),
-              appBarTheme: const AppBarTheme(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-              ),
-              scaffoldBackgroundColor: const Color(0xFF121212),
               useMaterial3: true,
-              inputDecorationTheme: InputDecorationTheme(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-              ),
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: const Color(0xFF2A8C82),
-                ),
-              ),
-              outlinedButtonTheme: OutlinedButtonThemeData(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              textButtonTheme: TextButtonThemeData(
-                style: TextButton.styleFrom(
-                  foregroundColor: accentColor,
-                ),
-              ),
-              fontFamily: 'Roboto',
             ),
             themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
-            // Aquí está la lógica actualizada:
             initialRoute: '/',
             routes: {
-              '/': (context) {
-                // 1) Si ya hay usuario, vamos directo a LandingPage
-                if (authProvider.user != null) {
+              '/': (c) {
+                // Si ya hay usuario, vamos directo a landing
+                if (auth.user != null) {
                   return const LandingPage();
                 }
-                // 2) Si no hay usuario pero aún estamos cargando, mostramos Splash
-                if (authProvider.loading) {
+                // Si aún no hemos comprobado el estado de Auth, mostramos splash
+                if (!auth.authChecked) {
                   return const SplashScreen();
                 }
-                // 3) Si ya no cargamos y no hay usuario, pantalla de Login
+                // Si no hay usuario y authChecked==true, mostramos login
                 return const LoginScreen();
               },
-              '/landing': (context) => const LandingPage(),
-              '/login': (context) => const LoginScreen(),
+              '/login': (c) => const LoginScreen(),
+              '/landing': (c) => const LandingPage(),
+              '/profile': (c) => const ProfileScreen(),
             },
           );
         },
@@ -140,35 +81,10 @@ class MyApp extends StatelessWidget {
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF275950), Color(0xFF1a3b35)],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/logo.png',
-                height: 120,
-                width: 120,
-              ),
-              const SizedBox(height: 32),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF88F2E8)),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

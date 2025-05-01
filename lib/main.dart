@@ -116,7 +116,7 @@ class MyApp extends StatelessWidget {
                 themeMode:
                     themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
                 initialRoute: '/',
-                routes: {
+                /* routes: {
                   '/': (context) => authProvider.loading
                       ? const SplashScreen()
                       : authProvider.fbUser != null
@@ -124,7 +124,7 @@ class MyApp extends StatelessWidget {
                           : const LoginScreen(),
                   '/landing': (context) => const LandingPage(),
                   '/login': (context) => const LoginScreen(),
-                },
+                }, */
               );
             },
           );
