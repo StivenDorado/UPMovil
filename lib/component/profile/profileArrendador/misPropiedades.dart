@@ -1,6 +1,6 @@
 // mis_propiedades.dart
 import 'package:flutter/material.dart';
-import '../profile/card.dart';
+import '../card.dart';
 
 class MisPropiedades extends StatelessWidget {
   final List<String> propiedades;

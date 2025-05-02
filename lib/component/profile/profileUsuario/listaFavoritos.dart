@@ -1,6 +1,6 @@
 // favoritos_list.dart
 import 'package:flutter/material.dart';
-import '../profile/card.dart';
+import '../card.dart';
 
 class FavoritosList extends StatelessWidget {
   final List<String> favoriteIds;

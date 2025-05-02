@@ -1,7 +1,6 @@
-// lib/widgets/landlord_confirmation_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import '../providers/auth_provider.dart';
 
 class LandlordConfirmationDialog extends StatefulWidget {
   const LandlordConfirmationDialog({Key? key}) : super(key: key);
@@ -14,20 +13,33 @@ class LandlordConfirmationDialog extends StatefulWidget {
 class _LandlordConfirmationDialogState
     extends State<LandlordConfirmationDialog> {
   bool _isSubmitting = false;
+  String? _errorMessage;
 
   Future<void> _onConfirm() async {
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+    
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final success = await auth.registerAsLandlord();
+    
     if (!mounted) return;
 
     if (success) {
       Navigator.of(context).pop();
       Navigator.pushReplacementNamed(context, '/profile');
     } else {
-      setState(() => _isSubmitting = false);
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = 'Error al registrar como arrendador';
+      });
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al registrar arrendador')),
+        SnackBar(
+          content: Text(_errorMessage ?? 'Error al registrar arrendador'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -36,8 +48,21 @@ class _LandlordConfirmationDialogState
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('¿Quieres registrarte como arrendador?'),
-      content: const Text(
-        'Selecciona "Confirmar" para convertirte en arrendador.',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Selecciona "Confirmar" para convertirte en arrendador.',
+          ),
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+        ],
       ),
       actions: [
         TextButton(
@@ -46,6 +71,9 @@ class _LandlordConfirmationDialogState
         ),
         ElevatedButton(
           onPressed: _isSubmitting ? null : _onConfirm,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+          ),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,
