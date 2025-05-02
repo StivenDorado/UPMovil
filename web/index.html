@@ -44,8 +44,9 @@
 </head>
 <body>
   <script>
+    const serviceWorkerVersion = null; // ← Esto evita el ReferenceError
+
     window.addEventListener('load', function(ev) {
-      // Cargar el entrypoint de Flutter
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
           serviceWorkerVersion: serviceWorkerVersion,

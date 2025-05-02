@@ -1,11 +1,11 @@
+// lib/pages/landing_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../services/image_helper.dart';
 import '../services/theme_service.dart';
-import '../widgets/user_menu_modal.dart'; // Importación del nuevo componente
+import '../widgets/user_menu_modal.dart';
+import '../component/card/card.dart'; // Import correcto de AccommodationCard
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -45,7 +45,6 @@ class _LandingPageState extends State<LandingPage> {
 
   Future<void> _fetchPropertyIds() async {
     if (_isSearching) return;
-
     setState(() {
       _isLoading = true;
       _error = null;
@@ -60,30 +59,28 @@ class _LandingPageState extends State<LandingPage> {
       } else {
         endpoint = 'http://localhost:4000/api/alojamientos';
       }
+
       if (_selectedCategory != 'Todos') {
         final separator = endpoint.contains('?') ? '&' : '?';
-        endpoint +=
-            '$separator categoria=${Uri.encodeComponent(_selectedCategory)}';
+        endpoint += '$separator categoria=${Uri.encodeComponent(_selectedCategory)}';
       }
 
       final response = await http.get(Uri.parse(endpoint));
       if (response.statusCode != 200) {
-        throw Exception('Error cargando propiedades: ${response.statusCode}');
+        throw Exception('Error: ${response.statusCode}');
       }
 
-      final dynamic responseData = json.decode(response.body);
-      List<dynamic> data;
-      if (responseData is Map<String, dynamic>) {
-        data = responseData['data'] as List<dynamic>? ?? [];
-      } else if (responseData is List<dynamic>) {
-        data = responseData;
+      final raw = json.decode(response.body);
+      List data;
+      if (raw is Map && raw['data'] is List) {
+        data = raw['data'];
+      } else if (raw is List) {
+        data = raw;
       } else {
-        throw Exception('Formato de respuesta desconocido');
+        data = [];
       }
 
-      _propertyIds = data
-          .map<String>((item) => (item['id'] ?? item['_id']).toString())
-          .toList();
+      _propertyIds = data.map((e) => (e['id'] ?? e['_id']).toString()).toList();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -94,14 +91,29 @@ class _LandingPageState extends State<LandingPage> {
     }
   }
 
-  Future<void> _performSearch(String value) async {
-    _searchTerm = value;
+  Future<void> _performSearch(String q) async {
+    _searchTerm = q;
     await _fetchPropertyIds();
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeService = Provider.of<ThemeService>(context);
+    final theme = Provider.of<ThemeService>(context);
+
+    // Mostrar indicador de carga o error
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Text(
+          'Error: $_error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -112,8 +124,7 @@ class _LandingPageState extends State<LandingPage> {
               filled: true,
               fillColor: Colors.white,
               hintStyle: TextStyle(color: Colors.grey[600]),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
           child: SearchBar(
@@ -123,17 +134,10 @@ class _LandingPageState extends State<LandingPage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // TODO: abrir modal de filtros
-            },
-          ),
-          // Nuevo botón de menú de usuario
+          IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
           const UserMenuButton(),
           IconButton(
-            icon: Icon(
-                themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            icon: Icon(themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
             onPressed: () {
               themeService.toggleTheme();
             },
@@ -142,13 +146,12 @@ class _LandingPageState extends State<LandingPage> {
       ),
       body: Column(
         children: [
-          // FILTROS OCUPANDO TODO EL ANCHO
           Container(
-            color: Theme.of(context).appBarTheme.backgroundColor,
             padding: const EdgeInsets.symmetric(vertical: 10),
+            color: Theme.of(context).appBarTheme.backgroundColor,
             child: Row(
-              children: _categories.map((cat) {
-                final bool selected = cat.name == _selectedCategory;
+              children: _categories.map((c) {
+                final selected = c.name == _selectedCategory;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -162,30 +165,22 @@ class _LandingPageState extends State<LandingPage> {
                             : Theme.of(context).colorScheme.primary,
                         elevation: selected ? 4 : 1,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () {
                         setState(() {
-                          _selectedCategory = cat.name;
-                          _fetchPropertyIds();
+                          _selectedCategory = c.name;
                         });
+                        _fetchPropertyIds();
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(cat.icon, size: 18),
-                            const SizedBox(height: 4),
-                            Text(
-                              cat.name,
-                              style: const TextStyle(fontSize: 11),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(c.icon, size: 18),
+                          const SizedBox(height: 4),
+                          Text(c.name,
+                              style: const TextStyle(fontSize: 11)),
+                        ],
                       ),
                     ),
                   ),
@@ -193,7 +188,6 @@ class _LandingPageState extends State<LandingPage> {
               }).toList(),
             ),
           ),
-
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -213,12 +207,9 @@ class _LandingPageState extends State<LandingPage> {
                         : Padding(
                             padding: const EdgeInsets.all(8),
                             child: GridView.builder(
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount:
-                                    MediaQuery.of(context).size.width > 600
-                                        ? 4
-                                        : 2,
+                                    MediaQuery.of(context).size.width > 600 ? 4 : 2,
                                 childAspectRatio: 0.7,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
@@ -231,22 +222,18 @@ class _LandingPageState extends State<LandingPage> {
                           ),
           ),
           Container(
+            padding: const EdgeInsets.all(16),
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.grey[850]
                 : Colors.grey[200],
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '© 2025 UPMovil',
-                  style: TextStyle(
+            child: Center(
+              child: Text(
+                '© 2025 UPMovil',
+                style: TextStyle(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.grey[400]
-                        : Colors.grey[700],
-                  ),
-                ),
-              ],
+                        : Colors.grey[700]),
+              ),
             ),
           ),
         ],
@@ -255,26 +242,24 @@ class _LandingPageState extends State<LandingPage> {
   }
 }
 
-// === WIDGETS AUXILIARES ===
-
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
   final Function(String) onSearch;
   final bool isLoading;
 
   const SearchBar({
-    Key? key,
     required this.controller,
     required this.onSearch,
     this.isLoading = false,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<SearchBar> createState() => _SearchBarState();
 }
 
 class _SearchBarState extends State<SearchBar> {
-  Future<void>? _searchDebounce;
+  Future<void>? _debounce;
 
   @override
   Widget build(BuildContext context) {
@@ -297,9 +282,8 @@ class _SearchBarState extends State<SearchBar> {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary,
-                      ),
+                      valueColor: AlwaysStoppedAnimation(
+                          Theme.of(context).colorScheme.primary),
                     ),
                   )
                 : null,
@@ -310,11 +294,12 @@ class _SearchBarState extends State<SearchBar> {
         filled: true,
         fillColor: Colors.white,
       ),
-      onChanged: (value) {
-        _searchDebounce?.ignore();
-        _searchDebounce = Future.delayed(const Duration(milliseconds: 500), () {
-          widget.onSearch(value);
-        });
+      onChanged: (v) {
+        _debounce?.ignore();
+        _debounce = Future.delayed(
+          const Duration(milliseconds: 500),
+          () => widget.onSearch(v),
+        );
       },
     );
   }
@@ -349,8 +334,7 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Future<void> _fetchDetalle() async {
     try {
-      final url =
-          'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
+      final url = 'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) {
         throw Exception('Error al cargar la propiedad: ${response.statusCode}');
@@ -392,8 +376,7 @@ class _PropertyCardState extends State<PropertyCard> {
                   imageUrl: imageUrl,
                   height: 140,
                   width: double.infinity,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 Positioned(
                   right: 8,
@@ -420,8 +403,7 @@ class _PropertyCardState extends State<PropertyCard> {
                 children: [
                   Text(
                     prop.titulo,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -444,8 +426,7 @@ class _PropertyCardState extends State<PropertyCard> {
                   const SizedBox(height: 4),
                   const Text(
                     'Disponible',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.green, height: 1.2),
+                    style: TextStyle(fontSize: 12, color: Colors.green, height: 1.2),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -454,8 +435,7 @@ class _PropertyCardState extends State<PropertyCard> {
                       symbol: '\$',
                       decimalDigits: 0,
                     ).format(prop.precio),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   SizedBox(
@@ -499,9 +479,7 @@ class Propiedad {
     List<Imagen> imagenes = [];
     try {
       final imagenesList = json['imagenes'] as List<dynamic>? ?? [];
-      imagenes = imagenesList
-          .map((e) => Imagen.fromJson(e as Map<String, dynamic>))
-          .toList();
+      imagenes = imagenesList.map((e) => Imagen.fromJson(e as Map<String, dynamic>)).toList();
     } catch (_) {}
     num precio = 0;
     try {
