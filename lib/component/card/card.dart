@@ -142,6 +142,7 @@ class _AccommodationCardState extends State<AccommodationCard> {
   Propiedad? _propiedad;
   bool _isFavorite = false;
   bool _showLoginPrompt = false;
+  bool _showDetails = false; // Nueva variable para mostrar/ocultar detalles
   final ImageHelper _imageHelper = ImageHelper();
 
   @override
@@ -244,15 +245,33 @@ class _AccommodationCardState extends State<AccommodationCard> {
     }
   }
 
-  void _navigateDetails() async {
+  // Método para navegar a los detalles de la propiedad
+  void _navigateToPropertyDetails() async {
     try {
+      // Registrar una vista en la API (igual que en la versión web)
       await http.post(
         Uri.parse('http://localhost:4000/api/propiedades/${widget.id}/vistas'),
         headers: {'Content-Type': 'application/json'},
       );
+      
       if (!mounted) return;
+      
+      // Navegar a la página de descripción de la propiedad
       Navigator.pushNamed(context, '/descripcionPropiedad/${widget.id}');
-    } catch (_) {}
+    } catch (e) {
+      // Manejar el error silenciosamente o mostrar un snackbar si es necesario
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al navegar: $e')),
+      );
+    }
+  }
+
+  // Método para alternar la visibilidad de los detalles
+  void _toggleDetails() {
+    setState(() {
+      _showDetails = !_showDetails;
+    });
   }
 
   @override
@@ -262,7 +281,8 @@ class _AccommodationCardState extends State<AccommodationCard> {
 
     final prop = _propiedad!;
     final img = prop.imagenes.isNotEmpty ? prop.imagenes.first.url : '';
-    // Construir chips de características
+    
+    // Lista de características para mostrar
     final features = <Widget>[
       if (prop.caracteristicas?.tipoVivienda != null)
         _buildFeatureChip(prop.caracteristicas!.tipoVivienda!),
@@ -273,14 +293,14 @@ class _AccommodationCardState extends State<AccommodationCard> {
     return Stack(
       children: [
         GestureDetector(
-          onTap: _navigateDetails,
+          onTap: _navigateToPropertyDetails, // Usar la función de navegación cuando se toca la tarjeta
           child: Card(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
             elevation: 4,
             margin: const EdgeInsets.all(8),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // se ajusta al contenido
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Imagen + corazón
@@ -297,7 +317,10 @@ class _AccommodationCardState extends State<AccommodationCard> {
                       top: 8,
                       right: 8,
                       child: GestureDetector(
-                        onTap: _toggleFavorite,
+                        onTap: () {
+                          // Evita que el tap se propague a la tarjeta
+                          _toggleFavorite();
+                        },
                         child: CircleAvatar(
                           backgroundColor: Colors.white.withOpacity(0.9),
                           radius: 16,
@@ -342,6 +365,10 @@ class _AccommodationCardState extends State<AccommodationCard> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      Text('Disponible',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600])),
                       const SizedBox(height: 6),
                       RichText(
                         text: TextSpan(
@@ -366,15 +393,40 @@ class _AccommodationCardState extends State<AccommodationCard> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Row compacto de chips
-                      Row(
-                        children: features
-                            .map((chip) => Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: chip,
-                                ))
-                            .toList(),
+                      
+                      // Botón para mostrar detalles (similar a la versión web)
+                      GestureDetector(
+                        onTap: () {
+                          // Evita que el tap se propague a la tarjeta
+                          _toggleDetails();
+                        },
+                        child: Text(
+                          _showDetails ? 'Ocultar detalles' : 'Ver detalles',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.teal[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
+                      
+                      // Detalles condicionales
+                      if (_showDetails) ...[
+                        const SizedBox(height: 8),
+                        Divider(color: Colors.grey[300]),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Características:',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: features,
+                        ),
+                      ],
                     ],
                   ),
                 ),
