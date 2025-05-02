@@ -116,15 +116,15 @@ class MyApp extends StatelessWidget {
                 themeMode:
                     themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
                 initialRoute: '/',
-                /* routes: {
-                  '/': (context) => authProvider.loading
+                routes: {
+                  '/': (context) => authProvider.profileLoading
                       ? const SplashScreen()
-                      : authProvider.fbUser != null
+                      : authProvider.user != null
                           ? const LandingPage()
                           : const LoginScreen(),
                   '/landing': (context) => const LandingPage(),
                   '/login': (context) => const LoginScreen(),
-                }, */
+                },
               );
             },
           );

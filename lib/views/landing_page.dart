@@ -55,13 +55,15 @@ class _LandingPageState extends State<LandingPage> {
     try {
       String endpoint;
       if (_searchTerm.isNotEmpty) {
-        endpoint = 'http://localhost:4000/api/propiedades/search?q=${Uri.encodeComponent(_searchTerm)}';
+        endpoint =
+            'http://localhost:4000/api/propiedades/search?q=${Uri.encodeComponent(_searchTerm)}';
       } else {
         endpoint = 'http://localhost:4000/api/alojamientos';
       }
       if (_selectedCategory != 'Todos') {
         final separator = endpoint.contains('?') ? '&' : '?';
-        endpoint += '$separator categoria=${Uri.encodeComponent(_selectedCategory)}';
+        endpoint +=
+            '$separator categoria=${Uri.encodeComponent(_selectedCategory)}';
       }
 
       final response = await http.get(Uri.parse(endpoint));
@@ -110,7 +112,8 @@ class _LandingPageState extends State<LandingPage> {
               filled: true,
               fillColor: Colors.white,
               hintStyle: TextStyle(color: Colors.grey[600]),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
           child: SearchBar(
@@ -129,7 +132,8 @@ class _LandingPageState extends State<LandingPage> {
           // Nuevo botón de menú de usuario
           const UserMenuButton(),
           IconButton(
-            icon: Icon(themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            icon: Icon(
+                themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
             onPressed: () {
               themeService.toggleTheme();
             },
@@ -209,9 +213,12 @@ class _LandingPageState extends State<LandingPage> {
                         : Padding(
                             padding: const EdgeInsets.all(8),
                             child: GridView.builder(
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount:
-                                    MediaQuery.of(context).size.width > 600 ? 4 : 2,
+                                    MediaQuery.of(context).size.width > 600
+                                        ? 4
+                                        : 2,
                                 childAspectRatio: 0.7,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
@@ -342,7 +349,8 @@ class _PropertyCardState extends State<PropertyCard> {
 
   Future<void> _fetchDetalle() async {
     try {
-      final url = 'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
+      final url =
+          'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) {
         throw Exception('Error al cargar la propiedad: ${response.statusCode}');
@@ -384,7 +392,8 @@ class _PropertyCardState extends State<PropertyCard> {
                   imageUrl: imageUrl,
                   height: 140,
                   width: double.infinity,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 Positioned(
                   right: 8,
@@ -411,7 +420,8 @@ class _PropertyCardState extends State<PropertyCard> {
                 children: [
                   Text(
                     prop.titulo,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -434,7 +444,8 @@ class _PropertyCardState extends State<PropertyCard> {
                   const SizedBox(height: 4),
                   const Text(
                     'Disponible',
-                    style: TextStyle(fontSize: 12, color: Colors.green, height: 1.2),
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.green, height: 1.2),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -443,7 +454,8 @@ class _PropertyCardState extends State<PropertyCard> {
                       symbol: '\$',
                       decimalDigits: 0,
                     ).format(prop.precio),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   SizedBox(
@@ -487,7 +499,9 @@ class Propiedad {
     List<Imagen> imagenes = [];
     try {
       final imagenesList = json['imagenes'] as List<dynamic>? ?? [];
-      imagenes = imagenesList.map((e) => Imagen.fromJson(e as Map<String, dynamic>)).toList();
+      imagenes = imagenesList
+          .map((e) => Imagen.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {}
     num precio = 0;
     try {
