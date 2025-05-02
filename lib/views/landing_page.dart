@@ -3,12 +3,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+
 import '../services/theme_service.dart';
 import '../widgets/user_menu_modal.dart';
-import '../component/card/card.dart'; // Import correcto de AccommodationCard
+import '../component/card/card.dart'; // AccommodationCard u otro nombre según tu componente
 
 class LandingPage extends StatefulWidget {
-  const LandingPage({super.key});
+  const LandingPage({Key? key}) : super(key: key);
 
   @override
   State<LandingPage> createState() => _LandingPageState();
@@ -72,7 +73,7 @@ class _LandingPageState extends State<LandingPage> {
 
       final raw = json.decode(response.body);
       List data;
-      if (raw is Map && raw['data'] is List) {
+      if (raw is Map<String, dynamic> && raw['data'] is List) {
         data = raw['data'];
       } else if (raw is List) {
         data = raw;
@@ -98,22 +99,7 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeService>(context);
-
-    // Mostrar indicador de carga o error
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-    if (_error != null) {
-      return Center(
-        child: Text(
-          'Error: $_error',
-          style: const TextStyle(color: Colors.red),
-        ),
-      );
-    }
+    final themeService = Provider.of<ThemeService>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -124,7 +110,8 @@ class _LandingPageState extends State<LandingPage> {
               filled: true,
               fillColor: Colors.white,
               hintStyle: TextStyle(color: Colors.grey[600]),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 10),
             ),
           ),
           child: SearchBar(
@@ -137,10 +124,9 @@ class _LandingPageState extends State<LandingPage> {
           IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
           const UserMenuButton(),
           IconButton(
-            icon: Icon(themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () {
-              themeService.toggleTheme();
-            },
+            icon: Icon(
+                themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            onPressed: () => themeService.toggleTheme(),
           ),
         ],
       ),
@@ -200,23 +186,32 @@ class _LandingPageState extends State<LandingPage> {
                       )
                     : _propertyIds.isEmpty
                         ? Center(
-                            child: Text(_searchTerm.isNotEmpty
-                                ? 'No hay resultados para \"$_searchTerm\"'
-                                : 'No se encontraron propiedades'),
+                            child: Text(
+                              _searchTerm.isNotEmpty
+                                  ? 'No hay resultados para "$_searchTerm"'
+                                  : 'No se encontraron propiedades',
+                              textAlign: TextAlign.center,
+                            ),
                           )
                         : Padding(
                             padding: const EdgeInsets.all(8),
                             child: GridView.builder(
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount:
-                                    MediaQuery.of(context).size.width > 600 ? 4 : 2,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: MediaQuery.of(context)
+                                            .size
+                                            .width >
+                                        600
+                                    ? 4
+                                    : 2,
                                 childAspectRatio: 0.7,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
                               ),
                               itemCount: _propertyIds.length,
                               itemBuilder: (context, index) {
-                                return PropertyCard(id: _propertyIds[index]);
+                                return AccommodationCard(
+                                    id: _propertyIds[index]);
                               },
                             ),
                           ),
@@ -230,9 +225,11 @@ class _LandingPageState extends State<LandingPage> {
               child: Text(
                 '© 2025 UPMovil',
                 style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey[400]
-                        : Colors.grey[700]),
+                  color: Theme.of(context).brightness ==
+                          Brightness.dark
+                      ? Colors.grey[400]
+                      : Colors.grey[700],
+                ),
               ),
             ),
           ),
@@ -244,15 +241,15 @@ class _LandingPageState extends State<LandingPage> {
 
 class SearchBar extends StatefulWidget {
   final TextEditingController controller;
-  final Function(String) onSearch;
+  final ValueChanged<String> onSearch;
   final bool isLoading;
 
   const SearchBar({
+    Key? key,
     required this.controller,
     required this.onSearch,
     this.isLoading = false,
-    super.key,
-  });
+  }) : super(key: key);
 
   @override
   State<SearchBar> createState() => _SearchBarState();
@@ -283,7 +280,8 @@ class _SearchBarState extends State<SearchBar> {
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation(
-                          Theme.of(context).colorScheme.primary),
+                        Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   )
                 : null,
@@ -309,201 +307,4 @@ class Category {
   final String name;
   final IconData icon;
   const Category(this.name, this.icon);
-}
-
-class PropertyCard extends StatefulWidget {
-  final String id;
-  const PropertyCard({super.key, required this.id});
-
-  @override
-  State<PropertyCard> createState() => _PropertyCardState();
-}
-
-class _PropertyCardState extends State<PropertyCard> {
-  bool _loading = true;
-  String? _error;
-  Propiedad? _propiedad;
-  bool _isFavorite = false;
-  final _imageHelper = ImageHelper();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchDetalle();
-  }
-
-  Future<void> _fetchDetalle() async {
-    try {
-      final url = 'http://localhost:4000/api/propiedades/publicacion/${widget.id}';
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode != 200) {
-        throw Exception('Error al cargar la propiedad: ${response.statusCode}');
-      }
-      final data = json.decode(response.body);
-      setState(() {
-        _propiedad = Propiedad.fromJson(data['data'] ?? data);
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return Card(child: Center(child: CircularProgressIndicator()));
-    }
-    if (_error != null) {
-      return Card(child: Center(child: Text('Error: $_error')));
-    }
-    final prop = _propiedad!;
-    String imageUrl = prop.imagenes.isNotEmpty ? prop.imagenes.first.url : '';
-    return GestureDetector(
-      onTap: () {},
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                _imageHelper.buildNetworkImage(
-                  imageUrl: imageUrl,
-                  height: 140,
-                  width: double.infinity,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: GestureDetector(
-                    onTap: () => setState(() => _isFavorite = !_isFavorite),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white70,
-                      radius: 16,
-                      child: Icon(
-                        _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: _isFavorite ? Colors.red : Colors.grey[800],
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    prop.titulo,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.place, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          prop.direccion,
-                          style: const TextStyle(fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Disponible',
-                    style: TextStyle(fontSize: 12, color: Colors.green, height: 1.2),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    NumberFormat.currency(
-                      locale: 'es_CO',
-                      symbol: '\$',
-                      decimalDigits: 0,
-                    ).format(prop.precio),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.primary,
-                        textStyle: const TextStyle(fontSize: 14),
-                      ),
-                      child: const Text('Ver detalles'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class Propiedad {
-  final String id;
-  final List<Imagen> imagenes;
-  final String titulo;
-  final String direccion;
-  final num precio;
-
-  Propiedad({
-    required this.id,
-    required this.imagenes,
-    required this.titulo,
-    required this.direccion,
-    required this.precio,
-  });
-
-  factory Propiedad.fromJson(Map<String, dynamic> json) {
-    final String id = (json['_id'] ?? json['id'] ?? '').toString();
-    List<Imagen> imagenes = [];
-    try {
-      final imagenesList = json['imagenes'] as List<dynamic>? ?? [];
-      imagenes = imagenesList.map((e) => Imagen.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {}
-    num precio = 0;
-    try {
-      final precioValue = json['precio'];
-      if (precioValue is num) {
-        precio = precioValue;
-      } else if (precioValue is String) {
-        precio = num.tryParse(precioValue) ?? 0;
-      }
-    } catch (_) {}
-    return Propiedad(
-      id: id,
-      imagenes: imagenes,
-      titulo: json['titulo']?.toString() ?? '',
-      direccion: json['direccion']?.toString() ?? '',
-      precio: precio,
-    );
-  }
-}
-
-class Imagen {
-  final String url;
-  Imagen({required this.url});
-  factory Imagen.fromJson(Map<String, dynamic> json) {
-    return Imagen(url: json['url']?.toString() ?? '');
-  }
 }

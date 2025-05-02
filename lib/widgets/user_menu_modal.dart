@@ -6,7 +6,7 @@ import '../services/theme_service.dart';
 import '../views/profile.dart';
 
 class UserMenuButton extends StatefulWidget {
-  const UserMenuButton({Key? key}) : super(key: key);
+  const UserMenuButton({super.key});
 
   @override
   State<UserMenuButton> createState() => _UserMenuButtonState();
@@ -31,7 +31,7 @@ class _UserMenuButtonState extends State<UserMenuButton> {
 }
 
 class UserMenuModal extends StatelessWidget {
-  const UserMenuModal({Key? key}) : super(key: key);
+  const UserMenuModal({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -179,13 +179,13 @@ class MenuOption extends StatelessWidget {
   final Color? textColor;
 
   const MenuOption({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.onTap,
     this.badge,
     this.textColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

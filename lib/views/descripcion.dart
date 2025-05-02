@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class PaginaPropiedad extends StatefulWidget {
+  const PaginaPropiedad({super.key});
+
   @override
   _PaginaPropiedadState createState() => _PaginaPropiedadState();
 }

@@ -25,7 +25,8 @@ class Propiedad {
   });
 
   factory Propiedad.fromJson(Map<String, dynamic> json) {
-    final id = (json['_id'] ?? json['id'] ?? json['propiedadId'] ?? '').toString();
+    final id = (json['_id'] ?? json['id'] ?? json['propiedadId'] ?? '')
+        .toString();
     final imagenes = <Imagen>[];
     if (json['imagenes'] is List) {
       for (var item in json['imagenes'] as List) {
@@ -37,8 +38,7 @@ class Propiedad {
     Caracteristicas? car;
     if (json['caracteristicas'] is Map<String, dynamic>) {
       car = Caracteristicas.fromJson(
-        Map<String, dynamic>.from(json['caracteristicas'] as Map)
-      );
+          Map<String, dynamic>.from(json['caracteristicas'] as Map));
     }
     num precio = 0;
     final p = json['precio'];
@@ -49,7 +49,9 @@ class Propiedad {
       id: id,
       imagenes: imagenes,
       titulo: json['titulo']?.toString() ?? '',
-      direccion: json['direccion']?.toString() ?? json['ubicacion']?.toString() ?? '',
+      direccion: json['direccion']?.toString() ??
+          json['ubicacion']?.toString() ??
+          '',
       caracteristicas: car,
       precio: precio,
     );
@@ -60,13 +62,11 @@ class Propiedad {
 class Imagen {
   final String url;
   Imagen({required this.url});
-
-  factory Imagen.fromJson(Map<String, dynamic> json) {
-    return Imagen(url: json['url']?.toString() ?? '');
-  }
+  factory Imagen.fromJson(Map<String, dynamic> json) =>
+      Imagen(url: json['url']?.toString() ?? '');
 }
 
-/// Modelo para Caracteristicas
+/// Modelo para Características
 class Caracteristicas {
   final String? tipoVivienda;
   final int? habitaciones;
@@ -80,6 +80,7 @@ class Caracteristicas {
       if (v is String) return int.tryParse(v);
       return null;
     }
+
     return Caracteristicas(
       tipoVivienda: json['tipo_vivienda']?.toString(),
       habitaciones: parseInt(json['habitaciones']),
@@ -88,21 +89,21 @@ class Caracteristicas {
   }
 }
 
-/// Widget que muestra indicador de carga
+/// Indicador de carga
 class _LoadingCard extends StatelessWidget {
   const _LoadingCard();
   @override
   Widget build(BuildContext context) => const Card(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16),
             child: CircularProgressIndicator(),
           ),
         ),
       );
 }
 
-/// Widget que muestra mensaje de error
+/// Mensaje de error
 class _ErrorCard extends StatelessWidget {
   final String? error;
   const _ErrorCard(this.error);
@@ -110,7 +111,7 @@ class _ErrorCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Text(
               error ?? 'Error al cargar la propiedad',
               style: const TextStyle(color: Colors.red),
@@ -120,7 +121,7 @@ class _ErrorCard extends StatelessWidget {
       );
 }
 
-/// Tarjeta de alojamiento con toggle de favorito
+/// Tarjeta de alojamiento
 class AccommodationCard extends StatefulWidget {
   final String id;
   final VoidCallback? onFavoriteToggle;
@@ -140,7 +141,6 @@ class _AccommodationCardState extends State<AccommodationCard> {
   String? _error;
   Propiedad? _propiedad;
   bool _isFavorite = false;
-  bool _showDetails = false;
   bool _showLoginPrompt = false;
   final ImageHelper _imageHelper = ImageHelper();
 
@@ -158,13 +158,10 @@ class _AccommodationCardState extends State<AccommodationCard> {
 
   Future<void> _fetchPropiedad() async {
     try {
-      final resp = await http.get(
-        Uri.parse('http://localhost:4000/api/propiedades/publicacion/${widget.id}'),
-      );
+      final resp = await http.get(Uri.parse(
+          'http://localhost:4000/api/propiedades/publicacion/${widget.id}'));
       if (!mounted) return;
-      if (resp.statusCode != 200) {
-        throw Exception('Error ${resp.statusCode}');
-      }
+      if (resp.statusCode != 200) throw Exception('Error ${resp.statusCode}');
       final raw = json.decode(resp.body);
       final data = (raw is Map && raw['data'] is Map)
           ? raw['data'] as Map<String, dynamic>
@@ -198,7 +195,8 @@ class _AccommodationCardState extends State<AccommodationCard> {
         final list = json.decode(resp.body) as List<dynamic>;
         final fav = list.any((item) {
           final map = item as Map<String, dynamic>;
-          final fid = map['propiedadId'] ?? map['id'] ?? map['propiedad']?['_id'];
+          final fid =
+              map['propiedadId'] ?? map['id'] ?? map['propiedad']?['_id'];
           return fid?.toString() == widget.id;
         });
         setState(() => _isFavorite = fav);
@@ -264,54 +262,61 @@ class _AccommodationCardState extends State<AccommodationCard> {
 
     final prop = _propiedad!;
     final img = prop.imagenes.isNotEmpty ? prop.imagenes.first.url : '';
-    final feats = [
-      prop.caracteristicas?.tipoVivienda ?? '',
-      '${prop.caracteristicas?.habitaciones ?? 1} hab.',
-      '${prop.caracteristicas?.banos ?? 1} baños',
-    ].where((e) => e.isNotEmpty).toList();
+    // Construir chips de características
+    final features = <Widget>[
+      if (prop.caracteristicas?.tipoVivienda != null)
+        _buildFeatureChip(prop.caracteristicas!.tipoVivienda!),
+      _buildFeatureChip('${prop.caracteristicas?.habitaciones ?? 1} hab'),
+      _buildFeatureChip('${prop.caracteristicas?.banos ?? 1} baños'),
+    ];
 
     return Stack(
       children: [
         GestureDetector(
           onTap: _navigateDetails,
           child: Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
             elevation: 4,
             margin: const EdgeInsets.all(8),
             child: Column(
+              mainAxisSize: MainAxisSize.min, // se ajusta al contenido
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Imagen + corazón
                 Stack(
                   children: [
                     _imageHelper.buildNetworkImage(
                       imageUrl: img,
-                      height: 180,
+                      height: 160,
                       width: double.infinity,
                       borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(12)),
                     ),
                     Positioned(
-                      right: 8,
                       top: 8,
+                      right: 8,
                       child: GestureDetector(
                         onTap: _toggleFavorite,
                         child: CircleAvatar(
-                          backgroundColor:
-                              const Color.fromRGBO(255, 255, 255, 0.9),
-                          radius: 18,
+                          backgroundColor: Colors.white.withOpacity(0.9),
+                          radius: 16,
                           child: Icon(
                             _isFavorite
                                 ? Icons.favorite
                                 : Icons.favorite_border,
-                            color:
-                                _isFavorite ? Colors.red : Colors.grey[800],
+                            size: 18,
+                            color: _isFavorite
+                                ? Colors.red
+                                : Colors.grey[800],
                           ),
                         ),
                       ),
                     ),
                   ],
                 ),
+
+                // Contenido textual
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -322,27 +327,22 @@ class _AccommodationCardState extends State<AccommodationCard> {
                               fontSize: 16, fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Icon(Icons.place,
-                              size: 16, color: Colors.grey[600]),
+                              size: 14, color: Colors.grey[600]),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(prop.direccion,
                                 style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[600]),
+                                    fontSize: 12, color: Colors.grey[600]),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      const Text('Disponible',
-                          style: TextStyle(
-                              fontSize: 13, color: Colors.green)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       RichText(
                         text: TextSpan(
                           children: [
@@ -358,58 +358,32 @@ class _AccommodationCardState extends State<AccommodationCard> {
                                   color: Colors.black),
                             ),
                             TextSpan(
-                                text: ' Por mes',
+                                text: ' / mes',
                                 style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     color: Colors.grey[600])),
                           ],
                         ),
                       ),
-                      TextButton(
-                        onPressed: () => setState(
-                            () => _showDetails = !_showDetails),
-                        style: TextButton.styleFrom(
-                            foregroundColor: Colors.teal,
-                            padding: EdgeInsets.zero),
-                        child: Text(_showDetails
-                            ? 'Ocultar detalles'
-                            : 'Ver detalles'),
+                      const SizedBox(height: 8),
+                      // Row compacto de chips
+                      Row(
+                        children: features
+                            .map((chip) => Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: chip,
+                                ))
+                            .toList(),
                       ),
-                      if (_showDetails)
-                        Container(
-                          padding: const EdgeInsets.only(top: 8),
-                          decoration: BoxDecoration(
-                              border: Border(
-                                  top: BorderSide(
-                                      color: Colors.grey[200]!))),
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: feats
-                                .map((f) => Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                          color: Colors.grey[100],
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          border: Border.all(
-                                              color: Colors.grey[300]!)),
-                                      child: Text(f,
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[700])),
-                                    ))
-                                .toList(),
-                          ),
-                        ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),
         ),
+
+        // Modal de login
         if (_showLoginPrompt)
           Positioned.fill(
             child: Container(
@@ -434,24 +408,22 @@ class _AccommodationCardState extends State<AccommodationCard> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             TextButton(
-                              onPressed: () => setState(
-                                  () => _showLoginPrompt = false),
+                              onPressed: () =>
+                                  setState(() => _showLoginPrompt = false),
                               child: const Text('Cancelar'),
                             ),
                             const SizedBox(width: 8),
                             ElevatedButton(
                               onPressed: () {
-                                setState(
-                                    () => _showLoginPrompt = false);
-                                Navigator.pushNamed(
-                                    context, '/login');
+                                setState(() => _showLoginPrompt = false);
+                                Navigator.pushNamed(context, '/login');
                               },
                               style: ElevatedButton.styleFrom(
                                   backgroundColor:
                                       const Color(0xFF41BFB3)),
                               child: const Text('Iniciar sesión',
-                                  style: TextStyle(
-                                      color: Colors.white)),
+                                  style:
+                                      TextStyle(color: Colors.white)),
                             ),
                           ],
                         ),
@@ -463,6 +435,21 @@ class _AccommodationCardState extends State<AccommodationCard> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildFeatureChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 10, color: Colors.grey),
+      ),
     );
   }
 }
